@@ -45,7 +45,7 @@
     </ul>
 
     <h2 id="reliability">Reliability</h2>
-    <p>avahi-daemon's reflector has a fixed pool of 100 slots for legacy unicast reflection. Bursts of mDNS traffic can exhaust it, after which reflected services look offline for hours until the daemon restarts. The plugin ships a health check that detects the slot errors in avahi's log (it logs to its own file) and restarts the daemon; wire it to Monit, or run it from the plugin's configd <code>healthcheck</code> action.</p>
+    <p>avahi-daemon's reflector has a fixed pool of 100 slots for legacy unicast reflection. Bursts of mDNS traffic can exhaust it, after which reflected services look offline for hours until the daemon restarts. The plugin ships a health check that finds the slot errors in avahi's log (avahi logs to its own file) and exits non-zero when it does. It reports; it does not restart anything by itself. To recover automatically, add it in Services &gt; Monit as a Custom service with start and stop commands <code>configctl avahireflector start</code> and <code>configctl avahireflector stop</code> and a non-zero-status test whose action is restart. It is also the plugin's configd <code>healthcheck</code> action, for other monitoring; <code>configctl avahireflector restart</code> clears the condition by hand.</p>
 
     <h2 id="limits">Limits</h2>
     <ul>
