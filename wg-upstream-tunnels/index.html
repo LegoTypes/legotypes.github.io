@@ -49,7 +49,7 @@
 
     <div class="stats">
       <div class="stat"><div class="big">8 pages → 1 dialog</div><div class="what">to create a tunnel</div></div>
-      <div class="stat"><div class="big">~15 steps → 4 clicks</div><div class="what">to move a tunnel to a new server</div></div>
+      <div class="stat"><div class="big">~15 steps → 5 clicks</div><div class="what">to move a tunnel to a new server</div></div>
       <div class="stat"><div class="big">6 safeguards</div><div class="what">core has no setting for, kept in force continuously</div></div>
     </div>
 
@@ -71,7 +71,7 @@
       <thead><tr><th>Task</th><th>By hand on the core pages</th><th>With the plugin</th></tr></thead>
       <tbody>
         <tr><td>Create a tunnel</td><td>Peer, instance, interface assignment, IPv4 and IPv6 gateways, endpoint route, outbound NAT per LAN and family, measured MTU and matching MSS; about 8 pages and a chain of applies in a specific order</td><td>Create → load the config → name it, pick the WAN and a monitor IP → Save → confirm</td></tr>
-        <tr><td>Move to a new server</td><td>About 15 steps on 5 pages, with 3 ordering traps (below)</td><td>Edit → Load file → Save → confirm</td></tr>
+        <tr><td>Move to a new server</td><td>About 15 steps on 5 pages, with 3 ordering traps (<a href="#swap">below</a>)</td><td>Edit → Load file → Measure → Save → confirm</td></tr>
         <tr><td>Move to another WAN</td><td>Edit the endpoint route, apply, restart the tunnel, check the pf state really moved</td><td>Edit → pick the WAN → Save</td></tr>
         <tr><td>Change NAT sources</td><td>Add or delete one outbound NAT rule per source and family</td><td>Edit → select or deselect sources → Save</td></tr>
         <tr><td>Change the MTU</td><td>Measure by hand, edit the instance MTU, recompute and set MSS</td><td>Edit → Measure → Save; the clamp follows by itself</td></tr>
@@ -79,8 +79,9 @@
       </tbody>
     </table>
     </div>
-    <h3>The server swap by hand</h3>
-    <p>Moving a tunnel to a new server (new keys, new endpoint) on the core pages:</p>
+    <h3 id="swap">A server swap: one dialog instead of fifteen steps</h3>
+    <div class="callout"><p><strong>With the plugin: Edit, Load file, Measure, Save, then confirm the preview.</strong> That one save does steps 1 to 12 below and renders the firewall pins of step 13, in the order that avoids all three traps. If the new config has no IPv6, turn IPv6 off in the same edit. It refuses, changing nothing, when the new endpoint is shared with another tunnel or is some gateway's monitor IP, and it leaves the tunnel marked apply-pending, with an Apply button, if any part did not complete. Only endpoint aliases you made yourself, and a look at the result, stay with you.</p></div>
+    <p>What it replaces: moving a tunnel to a new server (new keys, new endpoint) by hand on the core pages takes all of this, and getting the order wrong fails silently:</p>
     <ol class="steps">
       <li>Peers: new public key, preshared key, endpoint address and port.</li>
       <li>Instances: new private key; new tunnel addresses if the provider assigned different ones.</li>
@@ -98,7 +99,6 @@
       <li>Verify with <code>pfctl -ss</code> that the handshake leaves from the right WAN's address.</li>
       <li>Verify the handshake on the WireGuard status page.</li>
     </ol>
-    <p>With the plugin: <strong>Edit, Load file, Save, confirm the preview.</strong> It refuses instead of breaking when the new endpoint is shared with another tunnel or is some gateway's monitor IP, and it leaves the tunnel marked apply-pending if anything did not complete.</p>
 
     <h2 id="page">The page</h2>
     <p>Everything is on one page under <strong>VPN &gt; WireGuard &gt; Upstream tunnels</strong>: a settings pane with a help column, then the tunnel list. The list is a standard OPNsense grid with one row per managed tunnel: its device and interface, endpoint, bound WAN, MTU and MSS clamp, IPv4 and IPv6 gateways with live status (drawn as on core's gateway page), outbound NAT sources, gateway groups and findings. Every name links to the core page that owns it, and a gateway link opens that gateway's own edit dialog.</p>
@@ -126,7 +126,7 @@
       <li><strong>Bound WAN</strong>: the endpoint route changes gateway and the tunnel restarts so it handshakes via the new WAN.</li>
       <li><strong>Monitor IP</strong>, including removal of the old monitor's host route, which dpinger never deletes.</li>
       <li><strong>IPv6 on or off</strong>. Off removes the IPv6 gateway (refused while a group or rule uses it), address, allowed IPs and NAT; on needs a replacement config that assigns an IPv6 address.</li>
-      <li><strong>Server swap</strong>: load a new config. Keys, endpoint, route and addresses move together; new keys for the same server change no route at all.</li>
+      <li><strong>Server swap</strong>: load a new config, and Measure if the new server may sit on a different path. Keys, endpoint, route and addresses move together, and the tunnel restarts on the new path; new keys for the same server change no route at all.</li>
     </ul>
     <p>Only the differences are written, and only changed values are judged, so an odd but unchanged value never blocks another edit. The apply follows the change: NAT alone reloads the filter without touching routing; a monitor change reconfigures routes; an MTU, WAN, IPv6 or server change runs Create's apply and then restarts the tunnel.</p>
     <p>If an apply does not complete, the tunnel shows <code>apply-pending</code> and the record remembers which apply it still needs. The row's Apply button runs exactly that; only a complete apply of at least that kind, started against that record, clears it.</p>
