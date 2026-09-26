@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MAC Alias Cache for OPNsense</title>
+<meta name="description" content="An OPNsense plugin that shows what each MAC firewall alias resolves to and rebuilds MAC aliases from current host discovery data on demand.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="inner">
+    <a class="brand" href="../">LegoTypes</a>
+    <nav>
+      <a href="../install/">Install</a>
+      <a href="https://github.com/LegoTypes/plugins/tree/add-mac-alias-cache/net/mac-alias-cache">Source</a>
+    </nav>
+  </div>
+</header>
+
+<div class="page">
+  <main class="content">
+    <div class="eyebrow">OPNsense plugin · os-mac-alias-cache 1.0</div>
+    <h1>MAC Alias Cache</h1>
+    <p class="lede">Shows what every MAC-type firewall alias really resolves to, and rebuilds them from current host discovery data on demand, instead of waiting up to twelve hours for stale addresses to age out.</p>
+
+    <h2 id="why">Why this plugin</h2>
+    <p>OPNsense resolves MAC-type aliases through a cache of addresses reported by its host discovery. When a device is still being seen, its entry is refreshed. When it is no longer reported at all (it left, moved to an unwatched interface, or its records expired), its last addresses stay in the cache for up to 12 hours, in its own alias and in every alias that nests it. Rules keep matching an address that may already belong to another device.</p>
+    <p>Firewall &gt; Diagnostics &gt; Aliases cannot fix that: its flush and delete act on the pf table only, and the next alias refresh reloads the table from the same cache.</p>
+
+    <h2 id="use">Using it</h2>
+    <p><strong>Firewall &gt; Diagnostics &gt; MAC Alias Cache</strong> lists each MAC alias with its entries, the MACs that match, the addresses cached versus those host discovery reports now, and the aliases that nest it.</p>
+    <p><strong>Flush &amp; rebuild</strong> replaces the cache with one seeded only from current host discovery data and rebuilds every MAC alias and every alias nesting one, under core's own alias update lock. If the host list cannot be read, or is empty, it refuses and changes nothing, because core would otherwise rebuild every MAC alias as empty.</p>
+    <p>From a shell: <code>configctl macaliascache status</code> and <code>configctl macaliascache flush</code>.</p>
+
+    <h2 id="limits">Limits</h2>
+    <ul>
+      <li>A flush cannot remove an address host discovery still reports; those age out with host discovery's own expiry (Interfaces &gt; Neighbors &gt; Automatic Discovery).</li>
+      <li>It does not probe hosts: host discovery records ARP and NDP only, which an active host with a fresh entry does not send.</li>
+      <li>It acts only when asked; there is no schedule and nothing runs on install.</li>
+    </ul>
+
+    <h2 id="source">Source and install</h2>
+    <p>Install it from the LegoTypes repository: see <a href="../install/">Install</a>. Source: <a href="https://github.com/LegoTypes/plugins/tree/add-mac-alias-cache/net/mac-alias-cache">LegoTypes/plugins, branch <code>add-mac-alias-cache</code></a>.</p>
+  </main>
+</div>
+
+<footer class="site-footer">
+  <div class="inner">LegoTypes · <a href="https://github.com/LegoTypes">github.com/LegoTypes</a></div>
+</footer>
+</body>
+</html>

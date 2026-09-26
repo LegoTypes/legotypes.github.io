@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Install LegoTypes Plugins</title>
+<meta name="description" content="Add the signed LegoTypes package repository to OPNsense, then install and update its plugins from System > Firmware.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="inner">
+    <a class="brand" href="../">LegoTypes</a>
+    <nav>
+      <a href="https://github.com/LegoTypes/opnsense-repo">Repository source</a>
+    </nav>
+  </div>
+</header>
+
+<div class="page">
+  <main class="content">
+    <div class="eyebrow">OPNsense 26.7 · amd64</div>
+    <h1>Install the LegoTypes plugins</h1>
+    <p class="lede">One command adds the signed LegoTypes package repository to your firewall. From then on the plugins install, update and uninstall in System &gt; Firmware like any other.</p>
+
+    <h2 id="plugins">What it provides</h2>
+    <ul>
+      <li><a href="../wg-upstream-tunnels/"><strong>os-wg-client-tunnels</strong></a>: WireGuard upstream tunnels, built and enforced from a provider's config file.</li>
+      <li><a href="../avahi-reflector/"><strong>os-avahi-reflector</strong></a>: mDNS/DNS-SD reflection across VLANs.</li>
+      <li><a href="../mac-alias-cache/"><strong>os-mac-alias-cache</strong></a>: see and rebuild MAC firewall aliases.</li>
+    </ul>
+
+    <h2 id="bootstrap">1. Add the repository (once)</h2>
+    <p>In a shell on the firewall (console option 8, or SSH as root):</p>
+<pre><code>pkg add https://legotypes.github.io/opnsense-repo/os-legotypes.pkg &amp;&amp; \
+  pkg install -fy -r LegoTypes os-legotypes &amp;&amp; \
+  /usr/local/opnsense/scripts/firmware/register.php install os-legotypes</code></pre>
+    <p>The three steps: install the repository package (it brings the repository's address and its trusted signing-key fingerprint), reinstall it from the now-verified signed repository, and register it with the firmware as the GUI does for any plugin.</p>
+
+    <h2 id="verify">2. Check the key (recommended)</h2>
+    <p>The first command is trust on first use over HTTPS; every later package is verified against the fingerprint it installs. Compare that fingerprint with the one published here:</p>
+<pre><code>cat /usr/local/etc/pkg/fingerprints/LegoTypes/trusted/*</code></pre>
+    <div class="callout"><p><strong>sha256</strong> <code>213c16793ee5bec26098d5be9017e0888af98a94b86e4abddc4e42a78bbe4610</code></p></div>
+    <p>It is the SHA-256 of the repository's <a href="https://legotypes.github.io/opnsense-repo/legotypes-pkg-signing.pub">public signing key</a>, also kept in the <a href="https://github.com/LegoTypes/opnsense-repo/tree/main/keys">repository source</a>. <code>pkg update -r LegoTypes</code> should end with <code>LegoTypes repository update completed</code>; a signature problem shows as <code>No trusted public keys found</code>, and nothing from the repository is used.</p>
+
+    <h2 id="install">3. Install plugins</h2>
+    <p><strong>System &gt; Firmware &gt; Plugins</strong> lists the LegoTypes plugins beside the official ones; install with the <strong>+</strong> button. They show <strong>tier 4</strong>: OPNsense reserves its trusted tiers for its own repository and Zenarmor's, and marks every community repository tier 4.</p>
+
+    <h2 id="updates">Updates and removal</h2>
+    <ul>
+      <li>New versions arrive with <strong>System &gt; Firmware &gt; Updates</strong>, as for any plugin.</li>
+      <li>Uninstall a plugin from the Plugins tab. Uninstalling <code>os-legotypes</code> removes the repository; plugins already installed from it stay until you remove them.</li>
+    </ul>
+
+    <h2 id="support">Supported</h2>
+    <p>OPNsense 26.7 on amd64 (FreeBSD 15). Packages are built and signed by the repository's GitHub Actions workflow from the plugin sources in <a href="https://github.com/LegoTypes/plugins">LegoTypes/plugins</a>; every published build is also kept as a <a href="https://github.com/LegoTypes/opnsense-repo/releases">release</a>.</p>
+  </main>
+</div>
+
+<footer class="site-footer">
+  <div class="inner">LegoTypes · <a href="https://github.com/LegoTypes">github.com/LegoTypes</a></div>
+</footer>
+</body>
+</html>
