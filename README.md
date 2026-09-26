@@ -25,8 +25,7 @@ The package repository itself is not here: it is published by
 ## Editing
 
 Edit the HTML, open it in a browser to check (it renders the same from disk), then
-push to `main`; Pages deploys within a minute or two. `main` is protected by a
-ruleset (no deletion, no force-push; organization and repository admins bypass).
+push to `main`; Pages deploys within a minute or two.
 
 Keep examples on the pages to documentation address ranges (192.0.2.0/24,
 198.51.100.0/24, 203.0.113.0/24, 2001:db8::/32) and synthetic names.
