@@ -99,7 +99,7 @@
     <p>Its apply runs in the order that works: template reload (writes <code>wgN.conf</code>), routes (the endpoint <code>/32</code> exists <em>before</em> the first handshake), WireGuard, interface registration, routes again (gateways and dpinger on the new device), filter reload. The MTU is measured unless given: a don't-fragment ping bisection from the bound WAN's own address to the endpoint, minus 60 bytes of WireGuard overhead, kept within 1280–1420.</p>
     <p>Conventions, by instance number N (device <code>wgN</code>): listen port <code>51820+N</code>, far gateway <code>10.2.0.(3+N)</code>, IPv6 next hop <code>fd00::N:2</code>, and with unique addressing the tunnel address <code>fd00::N:1/128</code>. Unique addressing exists because providers often hand every key the same IPv6 address and FreeBSD refuses a duplicate address on two interfaces.</p>
 
-    <p id="after-setup">A new tunnel carries nothing until a rule sends traffic to it: see <a href="after-setup/">After tunnel setup</a> for groups, policy rules, failing closed, kill states and DNS.</p>
+    <p>A new tunnel carries nothing until a rule sends traffic to it: see <a href="after-setup/">After tunnel setup</a> for groups, policy rules, failing closed, kill states and DNS.</p>
 
     <h2 id="edit">Edit and server swap</h2>
     <p>Edit opens the same dialog, prefilled. The tunnel's identity (name, instance number, device, interface, gateway names) never changes, so gateway groups and rules that name it keep working. What it edits:</p>
