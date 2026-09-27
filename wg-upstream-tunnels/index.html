@@ -28,6 +28,7 @@
       <li><a href="#create">Create</a></li>
       <li><a href="#edit">Edit and server swap</a></li>
       <li><a href="#other-actions">Rebind, Adopt, Remove</a></li>
+      <li><a href="#after-setup">After tunnel setup</a></li>
       <li><a href="#enforcement">What it enforces</a></li>
       <li><a href="#default-route">Default-route exclusion</a></li>
       <li><a href="#mtu">MTU and the MSS clamp</a></li>
@@ -118,6 +119,8 @@
     <p>Its apply runs in the order that works: template reload (writes <code>wgN.conf</code>), routes (the endpoint <code>/32</code> exists <em>before</em> the first handshake), WireGuard, interface registration, routes again (gateways and dpinger on the new device), filter reload. The MTU is measured unless given: a don't-fragment ping bisection from the bound WAN's own address to the endpoint, minus 60 bytes of WireGuard overhead, kept within 1280–1420.</p>
     <p>Conventions, by instance number N (device <code>wgN</code>): listen port <code>51820+N</code>, far gateway <code>10.2.0.(3+N)</code>, IPv6 next hop <code>fd00::N:2</code>, and with unique addressing the tunnel address <code>fd00::N:1/128</code>. Unique addressing exists because providers often hand every key the same IPv6 address and FreeBSD refuses a duplicate address on two interfaces.</p>
 
+    <p>A new tunnel carries nothing until a rule sends traffic to it: see <a href="#after-setup">After tunnel setup</a> for groups, policy rules, failing closed and kill states.</p>
+
     <h2 id="edit">Edit and server swap</h2>
     <p>Edit opens the same dialog, prefilled. The tunnel's identity (name, instance number, device, interface, gateway names) never changes, so gateway groups and rules that name it keep working. What it edits:</p>
     <ul>
@@ -135,6 +138,29 @@
     <p><strong>Rebind</strong> repairs a tunnel whose endpoint changed on the core pages so its route no longer matches (<code>unbound</code>): it writes a <code>/32</code> to the current endpoint via the chosen WAN, optionally deletes the stale route with its kernel route, and restarts the tunnel.</p>
     <p><strong>Adopt</strong> brings an existing WireGuard instance under management without changing it. Findings then show what, if anything, differs from what Create would have built.</p>
     <p><strong>Remove</strong> deletes everything a tunnel owns, but refuses, changing nothing, while any gateway group, rule, port forward, NAT, static route, interface, interface group, bridge, GRE/GIF tunnel or virtual IP still references its gateways or interface.</p>
+
+    <h2 id="after-setup">After tunnel setup</h2>
+    <p>Create builds a tunnel and keeps it correct, but it does not decide which traffic uses it: that stays on core's pages, each linked from the Tunnel References table. A few reminders, not a rehash of the OPNsense documentation.</p>
+    <h3>Gateway groups</h3>
+    <p>Put the tunnels' gateways in a group, tiered by preference. With two WANs, the tunnels bound to your preferred WAN take the top tiers and the other WAN's tunnels the tiers below them; a second, mirrored group prefers the other WAN. A rule then chooses its preferred WAN by choosing the group. Because the plugin forces a tunnel down with its WAN, a WAN outage moves that group's traffic to the other WAN's tunnels. With one WAN, one group tiered by tunnel is enough. IPv4 and IPv6 gateways need separate groups.</p>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Group</th><th>Tier 1</th><th>Tier 2</th><th>Tier 3</th><th>Tier 4</th></tr></thead>
+      <tbody>
+        <tr><td><code>vpn_via_a</code></td><td>vpn-a1 (WAN A)</td><td>vpn-a2 (WAN A)</td><td>vpn-b1 (WAN B)</td><td>vpn-b2 (WAN B)</td></tr>
+        <tr><td><code>vpn_via_b</code></td><td>vpn-b1 (WAN B)</td><td>vpn-b2 (WAN B)</td><td>vpn-a1 (WAN A)</td><td>vpn-a2 (WAN A)</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Illustrative names. The IPv6 groups mirror these with each tunnel's IPv6 gateway.</p>
+    <h3>Policy rules</h3>
+    <p>On each interface whose traffic should use a tunnel, a pass rule with the group as its gateway and a destination that excludes local networks: an inverted alias of your private ranges (including the tailnet and ULA ranges, if you use them) never catches local traffic, whatever the rule order. Write one rule per IP version, each naming the group of its own family; core silently disables a rule whose IP version differs from its gateway's. The rule's source must also be one of the tunnel's NAT sources (Edit), or the plugin's guard drops the untranslated traffic.</p>
+    <h3>Failing closed</h3>
+    <p>Point policy rules at a group, even for a single tunnel. When every member of a group is down, core keeps the rule routed into tier 1, so the traffic dies in a dead tunnel instead of leaving by a WAN. A rule that names a single tunnel gateway behaves differently: while that gateway is down the rule stays active <em>without</em> its gateway, and its traffic leaves by the default route, unless <strong>Skip rules when gateway is down</strong> is on, in which case the rule is skipped and the rules below it decide. If you do name a single gateway, turn that setting on and add a block rule below it.</p>
+    <h3>Kill states</h3>
+    <p>Turn on <strong>Kill states</strong> for the tunnel gateways. Failover by itself moves only new connections; existing ones stay pinned to the dead tunnel until they time out. That matters most when a WAN outage moves a group to the other WAN's tunnels. The caveat is a jittery link: if latency alone marks a gateway down, every long-lived connection (push notifications, calls, smart-home hubs) is cut each time. There, set the monitor thresholds or the group's trigger so that loss, not delay, fails the gateway before relying on kill states.</p>
+    <h3>DNS</h3>
+    <p>The tunnel carries the traffic, but DNS still goes wherever the firewall's resolver sends it, normally out a WAN. Services that compare where a client's DNS and traffic come from can flag the difference.</p>
 
     <h2 id="enforcement">What it enforces</h2>
     <p>These are rendered by the plugin at every filter reload, derived from the managed tunnels; none is stored as a rule in config, so a restored backup or a changed tunnel never leaves a stale copy behind.</p>
@@ -241,18 +267,18 @@
 <pre><code>T=/usr/local/opnsense/scripts/OPNsense/WGClientTunnels/tunnel.php
 php $T list                                   # managed tunnels, then unmanaged instances
 php $T status                                 # findings only
-php $T measure-mtu WAN2 198.51.100.10         # path MTU for a WAN and endpoint
+php $T measure-mtu WAN_B 198.51.100.10         # path MTU for a WAN and endpoint
 
 # create: JSON on stdin (the config text carries the private key)
 jq -n --rawfile c provider.conf \
-  '{config: $c, name: "vpn-a", wan: "WAN2", monitor: "192.0.2.53", template: "vpn-b"}' \
+  '{config: $c, name: "vpn-a", wan: "WAN_B", monitor: "192.0.2.53", template: "vpn-b"}' \
   | php $T --dry create                       # then without --dry
 
 # edit: the uuid and only what changes
 echo '{"uuid": "&lt;uuid&gt;", "mtu": 1376}' | php $T --dry edit
 jq -n --rawfile c new-server.conf '{uuid: "&lt;uuid&gt;", config: $c}' | php $T edit
 
-php $T --dry rebind &lt;uuid&gt; WAN2 [&lt;stale route uuid&gt;]
+php $T --dry rebind &lt;uuid&gt; WAN_B [&lt;stale route uuid&gt;]
 php $T --dry adopt &lt;uuid&gt;
 php $T --dry remove &lt;uuid&gt;
 php $T apply &lt;uuid&gt;                            # the apply a pending change still needs
