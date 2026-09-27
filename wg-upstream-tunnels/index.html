@@ -24,11 +24,10 @@
     <ol>
       <li><a href="#why">Why this plugin</a></li>
       <li><a href="#numbers">By the numbers</a></li>
-      <li><a href="#page">The page</a></li>
+      <li><a href="#configuration">Configuration</a></li>
       <li><a href="#create">Create</a></li>
       <li><a href="#edit">Edit and server swap</a></li>
       <li><a href="#other-actions">Rebind, Adopt, Remove</a></li>
-      <li><a href="#after-setup">After tunnel setup</a></li>
       <li><a href="#enforcement">What it enforces</a></li>
       <li><a href="#default-route">Default-route exclusion</a></li>
       <li><a href="#mtu">MTU and the MSS clamp</a></li>
@@ -72,7 +71,7 @@
       <thead><tr><th>Task</th><th>By hand on the core pages</th><th>With the plugin</th></tr></thead>
       <tbody>
         <tr><td>Create a tunnel</td><td>Peer, instance, interface assignment, IPv4 and IPv6 gateways, endpoint route, outbound NAT per LAN and family, measured MTU and matching MSS; about 8 pages and a chain of applies in a specific order</td><td>Create → load the config → name it, pick the WAN and a monitor IP → Save → confirm</td></tr>
-        <tr><td>Move to a new server</td><td>About 15 steps on 5 pages, with 3 ordering traps (<a href="#swap">below</a>)</td><td>Edit → Load file → Measure → Save → confirm</td></tr>
+        <tr><td>Move to a new server</td><td>About 15 steps on 5 pages, with 3 ordering traps</td><td>Edit → Load file → Measure → Save → confirm</td></tr>
         <tr><td>Move to another WAN</td><td>Edit the endpoint route, apply, restart the tunnel, check the pf state really moved</td><td>Edit → pick the WAN → Save</td></tr>
         <tr><td>Change NAT sources</td><td>Add or delete one outbound NAT rule per source and family</td><td>Edit → select or deselect sources → Save</td></tr>
         <tr><td>Change the MTU</td><td>Measure by hand, edit the instance MTU, recompute and set MSS</td><td>Edit → Measure → Save; the clamp follows by itself</td></tr>
@@ -80,31 +79,8 @@
       </tbody>
     </table>
     </div>
-    <h3 id="swap">A server swap: one dialog instead of fifteen steps</h3>
-    <div class="callout"><p><strong>With the plugin: Edit, Load file, Measure, Save, then confirm the preview.</strong> That one save does steps 1 to 12 below and renders the firewall pins of step 13, in the order that avoids all three traps. If the new config has no IPv6, turn IPv6 off in the same edit. It refuses, changing nothing, when the new endpoint is shared with another tunnel or is some gateway's monitor IP, and it leaves the tunnel marked apply-pending, with an Apply button, if any part did not complete. Only endpoint aliases you made yourself, and a look at the result, stay with you.</p></div>
-    <p>What it replaces: moving a tunnel to a new server (new keys, new endpoint) by hand on the core pages takes all of this, and getting the order wrong fails silently:</p>
-    <ol class="steps">
-      <li>Peers: new public key, preshared key, endpoint address and port.</li>
-      <li>Instances: new private key; new tunnel addresses if the provider assigned different ones.</li>
-      <li>Check whether any other instance still uses the old endpoint; its route must stay if so.</li>
-      <li>Routes: add the new endpoint's <code>/32</code> via the tunnel's WAN.</li>
-      <li>Routes: delete the old endpoint route.</li>
-      <li>Delete the old kernel route: editing or deleting a route in config does not always take it out of the kernel.</li>
-      <li><span class="trap">Trap 1:</span> apply routes <em>before</em> WireGuard starts using the new peer.</li>
-      <li><span class="trap">Trap 2:</span> apply WireGuard with a template reload; <code>wireguard configure</code> alone never rewrites <code>wgN.conf</code>.</li>
-      <li><span class="trap">Trap 3:</span> restart the tunnel, or it keeps the source address of the path its first handshake took.</li>
-      <li>If the IPv6 assignment changed or disappeared: the IPv6 gateway, the peer's allowed IPs, the IPv6 NAT rules.</li>
-      <li>Re-measure the MTU; a new server can sit on a different path.</li>
-      <li>Update the instance MTU and the interface MSS to match.</li>
-      <li>Update any hand-made firewall pins or endpoint aliases, then apply the filter.</li>
-      <li>Verify with <code>pfctl -ss</code> that the handshake leaves from the right WAN's address.</li>
-      <li>Verify the handshake on the WireGuard status page.</li>
-    </ol>
-
-    <h2 id="page">The page</h2>
+    <h2 id="configuration">Configuration</h2>
     <p>Everything is on one page under <strong>VPN &gt; WireGuard &gt; Upstream tunnels</strong>: a settings pane with a help column, then the tunnel list. The list is a standard OPNsense grid with one row per managed tunnel: its device and interface, endpoint, bound WAN, MTU and MSS clamp, IPv4 and IPv6 gateways with live status (drawn as on core's gateway page), outbound NAT sources, gateway groups and findings. Every name links to the core page that owns it, and a gateway link opens that gateway's own edit dialog.</p>
-    <p>Row actions are <strong>Edit</strong> on every row, <strong>Rebind</strong> on rows whose endpoint route is missing, and <strong>Apply</strong> on rows whose last apply did not complete. Below the grid, WireGuard instances the plugin does not manage are listed with an <strong>Adopt</strong> button. Every change previews exactly what it will do before it does anything, and the list reloads as soon as the action finishes.</p>
-    <p>The Create and Edit dialogs carry a <strong>Tunnel References</strong> table: links to what the plugin deliberately leaves to the core pages (gateway thresholds, gateway groups, firewall rules, other NAT rules, peer options, interface settings), each as deep as the page allows. A gateway opens in its own dialog; the rules page opens on the tunnel's interface; Source NAT and the peer list are filtered to it.</p>
 
     <h2 id="create">Create</h2>
     <p>Paste or load the provider's wg-quick file, the <code>.conf</code> every provider offers for download. Only five values are read from it: <code>PrivateKey</code> and <code>Address</code> from <code>[Interface]</code>, <code>PublicKey</code>, <code>PresharedKey</code> and <code>Endpoint</code> from its single <code>[Peer]</code>. DNS, MTU, AllowedIPs, keepalive and hook lines are ignored. The file is read in your browser and sent in the request itself; the private key never reaches a command line, configd or a log.</p>
@@ -119,7 +95,7 @@
     <p>Its apply runs in the order that works: template reload (writes <code>wgN.conf</code>), routes (the endpoint <code>/32</code> exists <em>before</em> the first handshake), WireGuard, interface registration, routes again (gateways and dpinger on the new device), filter reload. The MTU is measured unless given: a don't-fragment ping bisection from the bound WAN's own address to the endpoint, minus 60 bytes of WireGuard overhead, kept within 1280–1420.</p>
     <p>Conventions, by instance number N (device <code>wgN</code>): listen port <code>51820+N</code>, far gateway <code>10.2.0.(3+N)</code>, IPv6 next hop <code>fd00::N:2</code>, and with unique addressing the tunnel address <code>fd00::N:1/128</code>. Unique addressing exists because providers often hand every key the same IPv6 address and FreeBSD refuses a duplicate address on two interfaces.</p>
 
-    <p>A new tunnel carries nothing until a rule sends traffic to it: see <a href="#after-setup">After tunnel setup</a> for groups, policy rules, failing closed and kill states.</p>
+    <p>A new tunnel carries nothing until a rule sends traffic to it: see <a href="after-setup/">After tunnel setup</a> for groups, policy rules, failing closed, kill states and DNS.</p>
 
     <h2 id="edit">Edit and server swap</h2>
     <p>Edit opens the same dialog, prefilled. The tunnel's identity (name, instance number, device, interface, gateway names) never changes, so gateway groups and rules that name it keep working. What it edits:</p>
@@ -138,34 +114,6 @@
     <p><strong>Rebind</strong> repairs a tunnel whose endpoint changed on the core pages so its route no longer matches (<code>unbound</code>): it writes a <code>/32</code> to the current endpoint via the chosen WAN, optionally deletes the stale route with its kernel route, and restarts the tunnel.</p>
     <p><strong>Adopt</strong> brings an existing WireGuard instance under management without changing it. Findings then show what, if anything, differs from what Create would have built.</p>
     <p><strong>Remove</strong> deletes everything a tunnel owns, but refuses, changing nothing, while any gateway group, rule, port forward, NAT, static route, interface, interface group, bridge, GRE/GIF tunnel or virtual IP still references its gateways or interface.</p>
-
-    <h2 id="after-setup">After tunnel setup</h2>
-    <p>Create builds a tunnel and keeps it correct, but it does not decide which traffic uses it: that stays on core's pages, each linked from the Tunnel References table. A few reminders, not a rehash of the OPNsense documentation.</p>
-    <h3>Gateway groups</h3>
-    <p>Put the tunnels' gateways in a group, tiered by preference. With two WANs, the tunnels bound to your preferred WAN take the top tiers and the other WAN's tunnels the tiers below them; a second, mirrored group prefers the other WAN. A rule then chooses its preferred WAN by choosing the group. Because the plugin forces a tunnel down with its WAN, a WAN outage moves that group's traffic to the other WAN's tunnels. With one WAN, one group tiered by tunnel is enough. IPv4 and IPv6 gateways need separate groups.</p>
-    <div class="table-wrap">
-    <table>
-      <thead><tr><th>Group</th><th>Tier 1</th><th>Tier 2</th><th>Tier 3</th><th>Tier 4</th></tr></thead>
-      <tbody>
-        <tr><td><code>vpn_via_a</code></td><td>vpn-a1 (WAN A)</td><td>vpn-a2 (WAN A)</td><td>vpn-b1 (WAN B)</td><td>vpn-b2 (WAN B)</td></tr>
-        <tr><td><code>vpn_via_b</code></td><td>vpn-b1 (WAN B)</td><td>vpn-b2 (WAN B)</td><td>vpn-a1 (WAN A)</td><td>vpn-a2 (WAN A)</td></tr>
-      </tbody>
-    </table>
-    </div>
-    <p>Illustrative names. The IPv6 groups mirror these with each tunnel's IPv6 gateway.</p>
-    <h3>Policy rules</h3>
-    <p>On each interface whose traffic should use a tunnel, a pass rule with the group as its gateway and a destination that excludes local networks: an inverted alias of your private ranges (including the tailnet and ULA ranges, if you use them) never catches local traffic, whatever the rule order. Write one rule per IP version, each naming the group of its own family; core silently disables a rule whose IP version differs from its gateway's. The rule's source must also be one of the tunnel's NAT sources (Edit), or the plugin's guard drops the untranslated traffic.</p>
-    <h3>Failing closed</h3>
-    <p>Point policy rules at a group, even for a single tunnel. When every member of a group is down, core keeps the rule routed into tier 1, so the traffic dies in a dead tunnel instead of leaving by a WAN. A rule that names a single tunnel gateway behaves differently: while that gateway is down the rule stays active <em>without</em> its gateway, and its traffic leaves by the default route, unless <strong>Skip rules when gateway is down</strong> is on, in which case the rule is skipped and the rules below it decide. If you do name a single gateway, turn that setting on and add a block rule below it.</p>
-    <h3>Kill states</h3>
-    <p>Turn on <strong>Kill states</strong> for the tunnel gateways. Failover by itself moves only new connections; existing ones stay pinned to the dead tunnel until they time out. That matters most when a WAN outage moves a group to the other WAN's tunnels. The caveat is a jittery link: if latency alone marks a gateway down, every long-lived connection (push notifications, calls, smart-home hubs) is cut each time. There, set the monitor thresholds or the group's trigger so that loss, not delay, fails the gateway before relying on kill states.</p>
-    <h3>DNS</h3>
-    <p>The tunnel carries traffic; where DNS goes is a separate design decision, and there is no single correct answer. The plugin ignores the config file's <code>DNS</code> line and changes nothing about resolution. The common choices:</p>
-    <ul>
-      <li><strong>The firewall's resolver over a WAN</strong> (Unbound resolving directly, or forwarding over DNS-over-TLS). Household DNS never depends on a tunnel's health, and local names and blocklists work for everyone. Lookups leave from the WAN while the traffic leaves from the tunnel, so services that compare the two locations can notice the difference.</li>
-      <li><strong>The provider's resolver through a tunnel</strong>, as the firewall's upstream. DNS and traffic come from the same place and the WAN sees no lookups. But the firewall has one upstream policy for every client, so all DNS, tunnelled or not, then depends on the tunnel. The provider's resolver is usually reachable only inside a tunnel, so it needs a static route through one tunnel's gateway, which does not fail over with the group; keep a fallback upstream.</li>
-      <li><strong>Per network.</strong> Give the tunnelled networks a different resolver, for example a public one handed out by DHCP, so their lookups follow the same policy rule as their traffic, while other networks keep the local resolver. Local names then need their own arrangement on those networks, and any rule that redirects DNS to the firewall must exempt them.</li>
-    </ul>
 
     <h2 id="enforcement">What it enforces</h2>
     <p>These are rendered by the plugin at every filter reload, derived from the managed tunnels; none is stored as a rule in config, so a restored backup or a changed tunnel never leaves a stale copy behind.</p>

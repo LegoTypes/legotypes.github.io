@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>After Tunnel Setup</title>
+<meta name="description" content="What to set up on OPNsense after creating WireGuard upstream tunnels: gateway groups across WANs, policy rules, failing closed, kill states and DNS choices.">
+<link rel="stylesheet" href="../../assets/site.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="inner">
+    <a class="brand" href="../../">LegoTypes</a>
+    <nav>
+      <a href="../">WireGuard Upstream Tunnels</a>
+      <a href="../../install/">Install</a>
+    </nav>
+  </div>
+</header>
+
+<div class="page">
+  <main class="content">
+    <div class="eyebrow"><a href="../">WireGuard Upstream Tunnels</a> · after Create</div>
+    <h1>After tunnel setup</h1>
+    <p class="lede">Create builds a tunnel and keeps it correct, but it does not decide which traffic uses it: that stays on core's pages, each linked from the Tunnel References table. A few reminders, not a rehash of the OPNsense documentation.</p>
+
+    <h2>Gateway groups</h2>
+    <p>Put the tunnels' gateways in a group, tiered by preference. With two WANs, the tunnels bound to your preferred WAN take the top tiers and the other WAN's tunnels the tiers below them; a second, mirrored group prefers the other WAN. A rule then chooses its preferred WAN by choosing the group. Because the plugin forces a tunnel down with its WAN, a WAN outage moves that group's traffic to the other WAN's tunnels. With one WAN, one group tiered by tunnel is enough. IPv4 and IPv6 gateways need separate groups.</p>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Group</th><th>Tier 1</th><th>Tier 2</th><th>Tier 3</th><th>Tier 4</th></tr></thead>
+      <tbody>
+        <tr><td><code>vpn_via_a</code></td><td>vpn-a1 (WAN A)</td><td>vpn-a2 (WAN A)</td><td>vpn-b1 (WAN B)</td><td>vpn-b2 (WAN B)</td></tr>
+        <tr><td><code>vpn_via_b</code></td><td>vpn-b1 (WAN B)</td><td>vpn-b2 (WAN B)</td><td>vpn-a1 (WAN A)</td><td>vpn-a2 (WAN A)</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Illustrative names. The IPv6 groups mirror these with each tunnel's IPv6 gateway.</p>
+    <h2>Policy rules</h2>
+    <p>On each interface whose traffic should use a tunnel, a pass rule with the group as its gateway and a destination that excludes local networks: an inverted alias of your private ranges (including the tailnet and ULA ranges, if you use them) never catches local traffic, whatever the rule order. Write one rule per IP version, each naming the group of its own family; core silently disables a rule whose IP version differs from its gateway's. The rule's source must also be one of the tunnel's NAT sources (Edit), or the plugin's guard drops the untranslated traffic.</p>
+    <h2>Failing closed</h2>
+    <p>Point policy rules at a group, even for a single tunnel. When every member of a group is down, core keeps the rule routed into tier 1, so the traffic dies in a dead tunnel instead of leaving by a WAN. A rule that names a single tunnel gateway behaves differently: while that gateway is down the rule stays active <em>without</em> its gateway, and its traffic leaves by the default route, unless <strong>Skip rules when gateway is down</strong> is on, in which case the rule is skipped and the rules below it decide. If you do name a single gateway, turn that setting on and add a block rule below it.</p>
+    <h2>Kill states</h2>
+    <p>Turn on <strong>Kill states</strong> for the tunnel gateways. Failover by itself moves only new connections; existing ones stay pinned to the dead tunnel until they time out. That matters most when a WAN outage moves a group to the other WAN's tunnels. The caveat is a jittery link: if latency alone marks a gateway down, every long-lived connection (push notifications, calls, smart-home hubs) is cut each time. There, set the monitor thresholds or the group's trigger so that loss, not delay, fails the gateway before relying on kill states.</p>
+    <h2>DNS</h2>
+    <p>The tunnel carries traffic; where DNS goes is a separate design decision, and there is no single correct answer. The plugin ignores the config file's <code>DNS</code> line and changes nothing about resolution. The common choices:</p>
+    <ul>
+      <li><strong>The firewall's resolver over a WAN</strong> (Unbound resolving directly, or forwarding over DNS-over-TLS). Household DNS never depends on a tunnel's health, and local names and blocklists work for everyone. Lookups leave from the WAN while the traffic leaves from the tunnel, so services that compare the two locations can notice the difference.</li>
+      <li><strong>The provider's resolver through a tunnel</strong>, as the firewall's upstream. DNS and traffic come from the same place and the WAN sees no lookups. But the firewall has one upstream policy for every client, so all DNS, tunnelled or not, then depends on the tunnel. The provider's resolver is usually reachable only inside a tunnel, so it needs a static route through one tunnel's gateway, which does not fail over with the group; keep a fallback upstream.</li>
+      <li><strong>Per network.</strong> Give the tunnelled networks a different resolver, for example a public one handed out by DHCP, so their lookups follow the same policy rule as their traffic, while other networks keep the local resolver. Local names then need their own arrangement on those networks, and any rule that redirects DNS to the firewall must exempt them.</li>
+    </ul>
+  </main>
+</div>
+
+<footer class="site-footer">
+  <div class="inner">LegoTypes · <a href="https://github.com/LegoTypes">github.com/LegoTypes</a></div>
+</footer>
+</body>
+</html>
