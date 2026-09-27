@@ -20,6 +20,7 @@
 
 <div class="page">
   <main class="content">
+    <p class="back"><a href="../#after-setup">← Back to WireGuard Upstream Tunnels, Create</a></p>
     <div class="eyebrow"><a href="../">WireGuard Upstream Tunnels</a> · after Create</div>
     <h1>After tunnel setup</h1>
     <p class="lede">Create builds a tunnel and keeps it correct, but it does not decide which traffic uses it: that stays on core's pages, each linked from the Tunnel References table. A few reminders, not a rehash of the OPNsense documentation.</p>
@@ -49,6 +50,8 @@
       <li><strong>The provider's resolver through a tunnel</strong>, as the firewall's upstream. DNS and traffic come from the same place and the WAN sees no lookups. But the firewall has one upstream policy for every client, so all DNS, tunnelled or not, then depends on the tunnel. The provider's resolver is usually reachable only inside a tunnel, so it needs a static route through one tunnel's gateway, which does not fail over with the group; keep a fallback upstream.</li>
       <li><strong>Per network.</strong> Give the tunnelled networks a different resolver, for example a public one handed out by DHCP, so their lookups follow the same policy rule as their traffic, while other networks keep the local resolver. Local names then need their own arrangement on those networks, and any rule that redirects DNS to the firewall must exempt them.</li>
     </ul>
+
+    <p class="back"><a href="../#after-setup">← Back to WireGuard Upstream Tunnels, Create</a></p>
   </main>
 </div>
 
