@@ -88,11 +88,11 @@
 
     <h2 id="create">Create</h2>
     <p>Paste or load the provider's wg-quick file, the <code>.conf</code> every provider offers for download. Only five values are read from it: <code>PrivateKey</code> and <code>Address</code> from <code>[Interface]</code>, <code>PublicKey</code>, <code>PresharedKey</code> and <code>Endpoint</code> from its single <code>[Peer]</code>. DNS, MTU, AllowedIPs, keepalive and hook lines are ignored. The file is read in your browser and sent in the request itself; the private key never reaches a command line, configd or a log.</p>
-    <p>Give it a name, the WAN it should leave by, and a monitor IP (an address nothing else uses: dpinger routes it through the tunnel). Optionally choose a template tunnel, whose gateway thresholds and outbound NAT rules are copied, or pick NAT sources. Create then builds, in one save:</p>
+    <p>Give it a name, the WAN it should leave by, and a monitor IP (an address nothing else uses: dpinger routes it through the tunnel) and, with IPv6, an IPv6 monitor IP the same way. Optionally choose a template tunnel, whose gateway thresholds and outbound NAT rules are copied, or pick NAT sources. Create then builds, in one save:</p>
     <ul>
       <li>the WireGuard peer and instance;</li>
       <li>the interface assignment, enabled and locked;</li>
-      <li>an IPv4 gateway with the monitor, and an IPv6 gateway that starts forced down until the health mirror releases it;</li>
+      <li>an IPv4 gateway with the monitor, and an IPv6 gateway with its own monitor that starts forced down until the health mirror releases it;</li>
       <li>a <code>/32</code> (IPv4) or <code>/128</code> (IPv6) route to the endpoint via the chosen WAN gateway;</li>
       <li>outbound NAT, per source and family.</li>
     </ul>
@@ -107,7 +107,7 @@
       <li><strong>Outbound NAT sources</strong>, as a multi-select per family. A newly selected source adds one plain rule (destination any, translated to the tunnel's address); a deselected one deletes that source's rules. Every other rule, and every other field of a kept rule, is left exactly as it is and listed.</li>
       <li><strong>MTU</strong>, with Measure. The MSS clamp follows automatically.</li>
       <li><strong>Bound WAN</strong>: the endpoint route changes gateway and the tunnel restarts so it handshakes via the new WAN.</li>
-      <li><strong>Monitor IP</strong>, including removal of the old monitor's host route, which dpinger never deletes.</li>
+      <li><strong>Monitor IPs</strong>, IPv4 and IPv6, including removal of the old monitor's host route.</li>
       <li><strong>IPv6 on or off</strong>. Off removes the IPv6 gateway (refused while a group or rule uses it), address, allowed IPs and NAT; on needs a replacement config that assigns an IPv6 address.</li>
       <li><strong>Server swap</strong>: load a new config, and Measure if the new server may sit on a different path. Keys, endpoint, route and addresses move together, and the tunnel restarts on the new path; new keys for the same server change no route at all.</li>
     </ul>
@@ -143,11 +143,11 @@
     <p>Four times a minute, in two passes and one save:</p>
     <ol>
       <li><strong>Underlay.</strong> Each tunnel's IPv4 gateway is forced down while its bound WAN is disabled, forced down, absent, or reading down, loss or delay+loss: exactly what a gateway group treats as down. The mirror records which gateways it holds and only ever releases those, so a force-down you set by hand is left alone.</li>
-      <li><strong>IPv6.</strong> Each tunnel's IPv6 gateway follows its own IPv4 tunnel and nothing else: down when the tunnel's loss crosses its high threshold (back at the low one), when its monitor is missing, or when the IPv4 gateway is forced down. IPv6 rides inside the IPv4 tunnel, so the native WAN's IPv6 being down does not take tunnel IPv6 down.</li>
+      <li><strong>IPv6.</strong> Each tunnel's IPv6 gateway follows its own IPv4 tunnel and nothing else: down when the tunnel's loss crosses its high threshold (back at the low one), when its monitor is missing, or when the IPv4 gateway is forced down. IPv6 rides inside the IPv4 tunnel, so the native WAN's IPv6 being down does not take tunnel IPv6 down. Since 3.3 each IPv6 gateway also has its own monitor, pinged through the tunnel, so an IPv6 failure inside a tunnel whose IPv4 still works takes only the IPv6 gateway down; the IPv4 and IPv6 groups may then leave by different servers until it recovers.</li>
     </ol>
     <p>A <strong>settle guard</strong> prevents false recovery: every routing reconfigure restarts all monitors, and a monitor that has just started reports 0% loss because it has no samples yet. While a monitor is younger than its gateway's time period, a healthy reading can trip a gateway down but never bring one up.</p>
     <p>The mirror also <strong>replays the gateway alarm it causes</strong>. Core's alarm action takes the gateway lock non-blockingly, so an alarm raised while the mirror held it would be dropped and the firewall would keep routing into the tunnel it just forced down. After releasing the lock the mirror waits for gateway status to show what it wrote, then runs the alarm itself.</p>
-    <p>Core adds no IPv6 far-gateway host routes, so the plugin also keeps each tunnel's IPv6 address and the route to its IPv6 next hop in place, re-asserted at boot, after every routing reconfigure, on a new WAN address, and once a minute.</p>
+    <p>Core adds no IPv6 far-gateway host routes, so the plugin also keeps each tunnel's IPv6 address and the routes to its IPv6 next hop and its IPv6 monitor in place, and restarts a missing IPv6 monitor within a minute, re-asserted at boot, after every routing reconfigure, on a new WAN address, and once a minute.</p>
 
     <h2 id="settings">Settings</h2>
     <div class="table-wrap">
@@ -156,7 +156,7 @@
       <tbody>
         <tr><td>Enable</td><td>Master switch. Off stops everything on the page and removes the tunnels' firewall pins and MSS clamp; the tunnels themselves keep running, since they are core configuration.</td><td>On</td></tr>
         <tr><td>Health mirror</td><td>Holds tunnels down with their WAN, and IPv6 gateways with their IPv4 health. Off freezes whatever is forced down at that moment.</td><td>On</td></tr>
-        <tr><td>IPv6 addresses and routes</td><td>Keeps each tunnel's IPv6 address and next-hop route. Off: IPv6 through the tunnels breaks at the next tunnel restart or reboot.</td><td>On when any tunnel has IPv6</td></tr>
+        <tr><td>IPv6 addresses and routes</td><td>Keeps each tunnel's IPv6 address, next-hop route and monitor route. Off: IPv6 through the tunnels breaks at the next tunnel restart or reboot.</td><td>On when any tunnel has IPv6</td></tr>
         <tr><td>Default-route guard</td><td>Removes a default route through a tunnel or other non-default gateway, both families.</td><td>On if the router uses one or more WANs as route defaults</td></tr>
         <tr><td>WAN pins</td><td>Blocks each tunnel's handshakes from leaving by any WAN but its bound one.</td><td>On</td></tr>
         <tr><td>Only NATed traffic into tunnels</td><td>Blocks packets entering a tunnel from any address but the firewall's own.</td><td>On</td></tr>
