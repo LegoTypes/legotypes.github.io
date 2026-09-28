@@ -93,10 +93,10 @@
       <li>the WireGuard peer and instance;</li>
       <li>the interface assignment, enabled and locked;</li>
       <li>an IPv4 gateway with the monitor, and an IPv6 gateway that starts forced down until the health mirror releases it;</li>
-      <li>a <code>/32</code> route to the endpoint via the chosen WAN;</li>
+      <li>a <code>/32</code> (IPv4) or <code>/128</code> (IPv6) route to the endpoint via the chosen WAN gateway;</li>
       <li>outbound NAT, per source and family.</li>
     </ul>
-    <p>Its apply runs in the order that works: template reload (writes <code>wgN.conf</code>), routes (the endpoint <code>/32</code> exists <em>before</em> the first handshake), WireGuard, interface registration, routes again (gateways and dpinger on the new device), filter reload. The MTU is measured unless given: a don't-fragment ping bisection from the bound WAN's own address to the endpoint, minus 60 bytes of WireGuard overhead, kept within 1280–1420.</p>
+    <p>Its apply runs in the order that works: template reload (writes <code>wgN.conf</code>), routes (the endpoint route exists <em>before</em> the first handshake), WireGuard, interface registration, routes again (gateways and dpinger on the new device), filter reload. The MTU is measured unless given: a don't-fragment ping bisection from the bound WAN's own address to the endpoint, minus 60 bytes of WireGuard overhead, kept within 1280–1420.</p>
     <p>Conventions, by instance number N (device <code>wgN</code>): listen port <code>51820+N</code>, far gateway <code>10.2.0.(3+N)</code>, IPv6 next hop <code>fd00::N:2</code>, and with unique addressing the tunnel address <code>fd00::N:1/128</code>. Unique addressing exists because providers often hand every key the same IPv6 address and FreeBSD refuses a duplicate address on two interfaces.</p>
 
     <p>A new tunnel carries nothing until a rule sends traffic to it: see <a href="after-setup/">After tunnel setup</a> for groups, policy rules, failing closed, kill states and DNS.</p>
@@ -175,9 +175,9 @@
         <tr><td><code>not-assigned</code> <span class="tag block">blocking</span></td><td>The <code>wgN</code> device has no interface assignment. Interfaces &gt; Assignments.</td></tr>
         <tr><td><code>interface-disabled</code> <span class="tag block">blocking</span></td><td>The tunnel's interface is disabled; core renders no rules on it. Enable it.</td></tr>
         <tr><td><code>not-single-peer</code> <span class="tag block">blocking</span></td><td>The instance needs exactly one peer.</td></tr>
-        <tr><td><code>endpoint-unsupported</code> <span class="tag block">blocking</span></td><td>The endpoint is a hostname or IPv6 address; the binding needs an IPv4 address. A server swap to an IPv4 endpoint resolves it.</td></tr>
+        <tr><td><code>endpoint-unsupported</code> <span class="tag block">blocking</span></td><td>The endpoint is a hostname or not a global IP address; a swap to an IPv4 or global IPv6 endpoint resolves it.</td></tr>
         <tr><td><code>ambiguous-gateway</code> <span class="tag block">blocking</span></td><td>More than one gateway per family on the tunnel interface.</td></tr>
-        <tr><td><code>unbound</code></td><td>No <code>/32</code> route to the endpoint, so no WAN to pin it to. Rebind.</td></tr>
+        <tr><td><code>unbound</code></td><td>No <code>/32</code> or <code>/128</code> route to the endpoint, so no WAN to pin it to. Rebind.</td></tr>
         <tr><td><code>stale-route</code></td><td>A route still points at a previous endpoint. Rebind offers to delete it with its kernel route.</td></tr>
         <tr><td><code>wan-unavailable</code></td><td>The bound WAN is disabled or gone; the tunnel is blocked on every interface until it returns.</td></tr>
         <tr><td><code>ipv6-incomplete</code></td><td>An IPv6 tunnel address without an IPv6 gateway, or the reverse.</td></tr>
@@ -244,7 +244,7 @@ php $T --selftest                             # decision-logic tests, no config 
 
     <h2 id="limits">Limits</h2>
     <ul>
-      <li>Endpoints must be IPv4 addresses. A hostname endpoint could rotate addresses behind the pin, so it is refused (<code>endpoint-unsupported</code>).</li>
+      <li>Endpoints are IPv4 addresses, or global IPv6 addresses bound to a WAN's IPv6 gateway by a /128 route. A hostname endpoint could rotate addresses behind the pin, so it is refused (<code>endpoint-unsupported</code>); IPv6 over 6rd/6to4 WANs is not supported.</li>
       <li>One peer per instance, and one IPv4 tunnel address per config.</li>
       <li>Gateway groups stay on core's page: add a new tunnel's gateways to your groups there. The Tunnel References table links to it.</li>
       <li>Providers that issue keys only through an API (no downloadable config) need a config file generated first; the wg-quick file is the input.</li>
