@@ -12,7 +12,6 @@ no Jekyll (`.nojekyll`), no external scripts or fonts.
 | `/install/` | Adding the signed LegoTypes package repository to OPNsense: the bootstrap command, the signing-key fingerprint and how to check it, updates and removal |
 | `/wg-upstream-tunnels/` | `os-wg-client-tunnels`: why, what it builds and enforces, settings, findings, command line |
 | `/wg-upstream-tunnels/after-setup/` | What is left to core's pages after Create: gateway groups, policy rules, failing closed, kill states, DNS choices |
-| `/avahi-reflector/` | `os-avahi-reflector`: mDNS/DNS-SD reflection across VLANs |
 | `/mac-alias-cache/` | `os-mac-alias-cache`: MAC alias inspection and rebuild |
 | `/assets/site.css` | The stylesheet: light and dark via `prefers-color-scheme`; a page with a contents sidebar uses `<div class="page with-toc">` |
 
