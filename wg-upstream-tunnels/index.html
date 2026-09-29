@@ -88,7 +88,7 @@
 
     <h2 id="create">Create</h2>
     <p>Paste or load the provider's wg-quick file, the <code>.conf</code> every provider offers for download. Only five values are read from it: <code>PrivateKey</code> and <code>Address</code> from <code>[Interface]</code>, <code>PublicKey</code>, <code>PresharedKey</code> and <code>Endpoint</code> from its single <code>[Peer]</code>. DNS, MTU, AllowedIPs, keepalive and hook lines are ignored. The file is read in your browser and sent in the request itself; the private key never reaches a command line, configd or a log.</p>
-    <p>Give it a name, the WAN it should leave by, and a monitor IP (an address nothing else uses; dpinger routes it through the tunnel) and, with IPv6, an IPv6 monitor IP (also an address nothing else uses; the plugin routes it through the tunnel). Optionally choose a template tunnel, whose gateway thresholds and outbound NAT rules are copied, or pick NAT sources. Create then builds, in one save:</p>
+    <p>Give it a name, the WAN it should leave by, and a monitor IP (an address nothing else uses; dpinger routes it through the tunnel) and, with IPv6, an IPv6 monitor IP (also an address nothing else uses; the plugin routes it through the tunnel). Pick an IPv6 monitor that answers ping through that tunnel: an address can answer from one exit server and not another, and one that never answers keeps the IPv6 gateway down. Optionally choose a template tunnel, whose gateway thresholds and outbound NAT rules are copied, or pick NAT sources. Create then builds, in one save:</p>
     <ul>
       <li>the WireGuard peer and instance;</li>
       <li>the interface assignment, enabled and locked;</li>
@@ -186,6 +186,8 @@
         <tr><td><code>legacy-mss</code></td><td>An MSS is set by hand on the tunnel interface; the plugin's clamp replaces it.</td></tr>
         <tr><td><code>nat-missing</code></td><td>No outbound NAT on the tunnel interface for a family, so the inner-source block drops everything a LAN sends into it.</td></tr>
         <tr><td><code>monitor-shared</code></td><td>The monitor IP is also used by something else.</td></tr>
+        <tr><td><code>ipv6-unmonitored</code></td><td>The IPv6 gateway has no monitor of its own, so an IPv6-only failure inside the tunnel goes unseen. Edit: set an IPv6 monitor.</td></tr>
+        <tr><td><code>ipv6-monitor-config</code></td><td>The IPv6 monitor is set up in a way that can misread: core may route it, its thresholds are tighter than the IPv4 gateway's, or the plugin's IPv6 routes are switched off. Saving the monitor again in Edit repairs the first two.</td></tr>
         <tr><td><code>sentinel-missing</code></td><td>The default-route exclusion's sentinel gateways are missing. Check default-route exclusion creates them.</td></tr>
         <tr><td><code>render-failed</code></td><td>The last filter reload could not build the plugin's rules; they are missing until the next reload succeeds. The reason is in the firewall log.</td></tr>
         <tr><td><code>apply-pending</code></td><td>A Create or Edit saved but its apply did not complete. The row's Apply runs what is still needed.</td></tr>
@@ -215,6 +217,7 @@
       <li><strong>Locks leak through <code>exec()</code>.</strong> PHP opens files without close-on-exec, so a daemon a reconfigure restarts inherits the script's lock files for life. Every plugin lock is opened close-on-exec, and reconfigures run through configd.</li>
       <li><strong>Core's gateway alarm is dropped while the gateway lock is held.</strong> Hence the replay after every routing change.</li>
       <li><strong>dpinger adds a host route to a monitor IP and never removes the old one.</strong> Edit hands the old one to core's route-deletion mechanism.</li>
+      <li><strong>Core starts an IPv6 monitor before a tunnel's IPv6 routes exist, and skips it while the tunnel address is still tentative.</strong> Hence the plugin's own monitor route and its once-a-minute repair.</li>
       <li><strong>The default-gateway election ignores the <code>defaultgw</code> flag</strong> and never deletes a stale default. Hence the sentinels and the guard.</li>
       <li><strong>Core's backend returns an empty string on a timeout.</strong> A step counts as done only on an explicit OK.</li>
     </ul>
