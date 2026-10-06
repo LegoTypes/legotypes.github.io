@@ -44,7 +44,7 @@
   </aside>
 
   <main class="content">
-    <div class="eyebrow">OPNsense plugin · os-wg-client-tunnels 3.3</div>
+    <div class="eyebrow">OPNsense plugin · os-wg-client-tunnels 3.7</div>
     <h1>WireGuard Upstream Tunnels</h1>
     <p class="lede">Turns a VPN provider's WireGuard config file into a policy-routed upstream on OPNsense in one dialog, keeps it enforced, and tells you when someone changes a piece of it by hand.</p>
 
@@ -132,7 +132,7 @@
     <p>The rule, for both families: <strong>a tunnel is never the default</strong>. Enforced in two halves:</p>
     <ul>
       <li><strong>Sentinel gateways (prevention).</strong> <code>NO_DEFAULT4</code> and <code>NO_DEFAULT6</code> are address-less gateways at priority 254 on a loopback. The native WANs still sort first and win whenever they are up; otherwise a sentinel outranks every tunnel, and because it has no address, core installs no default at all. The button <em>Check default-route exclusion</em> creates or repairs them, showing what it would change first.</li>
-      <li><strong>Default-route guard (cleanup).</strong> At the end of every routing reconfigure and once a minute, it removes a default route that points through a tunnel or any other gateway that is not a native default. It only deletes a route whose gateway it positively identifies, so it can never remove a native default it failed to recognise.</li>
+      <li><strong>Default-route guard (cleanup).</strong> At the end of every routing reconfigure and once a minute, it removes a default route whose next hop belongs only to tunnels or other gateways that are not a native default. It only deletes a route whose next hop it positively identifies, and leaves one a native default gateway shares, so it can never remove a native default it failed to recognise.</li>
     </ul>
 
     <h2 id="mtu">MTU and the MSS clamp</h2>
@@ -145,7 +145,7 @@
       <li><strong>Underlay.</strong> Each tunnel's IPv4 gateway is forced down while its bound WAN is disabled, forced down, absent, or reading down, loss or delay+loss: exactly what a gateway group treats as down. The mirror records which gateways it holds and only ever releases those, so a force-down you set by hand is left alone.</li>
       <li><strong>IPv6.</strong> Each tunnel's IPv6 gateway follows its IPv4 tunnel: the mirror forces it down when the tunnel's loss crosses its high threshold (back at the low one), when its monitor is missing, or when the IPv4 gateway is forced down. IPv6 rides inside the IPv4 tunnel, so the native WAN's IPv6 being down does not take tunnel IPv6 down. Since 3.3 each IPv6 gateway also has its own monitor, pinged through the tunnel and judged by core, not by the mirror, so an IPv6 failure inside a tunnel whose IPv4 still works takes only the IPv6 gateway down; the IPv4 and IPv6 groups may then leave by different servers until it recovers.</li>
     </ol>
-    <p>A <strong>settle guard</strong> prevents false recovery: every routing reconfigure restarts all monitors, and a monitor that has just started reports 0% loss because it has no samples yet. While a monitor is younger than its gateway's time period, a healthy reading can trip a gateway down but never bring one up.</p>
+    <p>A <strong>settle guard</strong> keeps restarts from deciding anything: every routing reconfigure, including any gateway Apply, restarts all monitors, and a monitor that has just started has no samples yet, so it reads 0% or 100% loss, up or down, whatever the path is doing. While a monitor is younger than its gateway's time period its reading changes nothing in either direction and the last decision stands, so a gateway is never released in the middle of an outage and a gateway change elsewhere never takes a healthy WAN's tunnels down. A WAN that is disabled or forced down in configuration still acts at once.</p>
     <p>The mirror also <strong>replays the gateway alarm it causes</strong>. Core's alarm action takes the gateway lock non-blockingly, so an alarm raised while the mirror held it would be dropped and the firewall would keep routing into the tunnel it just forced down. After releasing the lock the mirror waits for gateway status to show what it wrote, then runs the alarm itself.</p>
     <p>Core adds no IPv6 far-gateway host routes, so the plugin also keeps each tunnel's IPv6 address and the routes to its IPv6 next hop and its IPv6 monitor in place: at boot, after every routing reconfigure, on a new WAN address, and once a minute. The once-a-minute pass is also what restarts a missing IPv6 monitor, so that takes up to a minute.</p>
 
@@ -157,9 +157,9 @@
         <tr><td>Enable</td><td>Master switch. Off stops everything on the page and removes the tunnels' firewall pins and MSS clamp; the tunnels themselves keep running, since they are core configuration.</td><td>On</td></tr>
         <tr><td>Health mirror</td><td>Holds tunnels down with their WAN, and IPv6 gateways with their IPv4 health. Off freezes whatever is forced down at that moment.</td><td>On</td></tr>
         <tr><td>IPv6 addresses and routes</td><td>Keeps each tunnel's IPv6 address, next-hop route and monitor route. Off: IPv6 through the tunnels breaks at the next tunnel restart or reboot.</td><td>On when any tunnel has IPv6</td></tr>
-        <tr><td>Default-route guard</td><td>Removes a default route through a tunnel or other non-default gateway, both families.</td><td>On if the router uses one or more WANs as route defaults</td></tr>
+        <tr><td>Default-route guard</td><td>Removes a default route whose next hop belongs only to a tunnel or other non-default gateway, both families.</td><td>On if the router uses one or more WANs as route defaults</td></tr>
         <tr><td>WAN pins</td><td>Blocks each tunnel's handshakes from leaving by any WAN but its bound one.</td><td>On</td></tr>
-        <tr><td>Only NATed traffic into tunnels</td><td>Blocks packets entering a tunnel from any address but the firewall's own.</td><td>On</td></tr>
+        <tr><td>Only NATed traffic into tunnels</td><td>Blocks packets entering a tunnel from any address but that tunnel's own, i.e. traffic outbound NAT did not translate to it.</td><td>On</td></tr>
         <tr><td>MSS clamp</td><td>Clamps TCP MSS to each tunnel's MTU, both directions.</td><td>On</td></tr>
       </tbody>
     </table>
