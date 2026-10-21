@@ -32,7 +32,7 @@
     <h2 id="verify">1. Check the key</h2>
     <p>Everything the repository serves is verified against one signing-key fingerprint, and the commands below trust the fingerprint you give them. So check it first. It is the SHA-256 of the repository's <a href="https://legotypes.github.io/opnsense-repo/legotypes-pkg-signing.pub">public signing key</a>, which is also kept in the <a href="https://github.com/LegoTypes/opnsense-repo/tree/main/keys">repository source</a>:</p>
     <div class="callout"><p><strong>sha256</strong> <code>213c16793ee5bec26098d5be9017e0888af98a94b86e4abddc4e42a78bbe4610</code></p></div>
-    <p>To work it out yourself, in a shell on the firewall (console option 8, or SSH as root), download the key and hash it. The result should match the line above, and the copy in the repository source:</p>
+    <p>To work it out yourself, in a shell on the firewall (console option 8, or SSH as root), download the key and hash it. The result should match the line above, and the copy in the repository source (both are served by LegoTypes, so the comparison checks the download, not LegoTypes itself):</p>
 <pre><code>fetch -o /tmp/legotypes-pkg-signing.pub https://legotypes.github.io/opnsense-repo/legotypes-pkg-signing.pub
 sha256 -q /tmp/legotypes-pkg-signing.pub</code></pre>
 
@@ -55,7 +55,7 @@ EOF
 pkg update -r LegoTypes &amp;&amp; pkg install -y -r LegoTypes os-legotypes &amp;&amp; \
   /usr/local/opnsense/scripts/firmware/register.php install os-legotypes
 rm /usr/local/etc/pkg/fingerprints/LegoTypes/trusted/bootstrap</code></pre>
-    <p><code>pkg update -r LegoTypes</code> should end with <code>LegoTypes repository update completed</code>; a signature problem shows as <code>No trusted public keys found</code>, and nothing from the repository is used. The package then keeps the same fingerprint on the firewall for every later update.</p>
+    <p><code>pkg update -r LegoTypes</code> should end with <code>LegoTypes repository update completed</code>; a signature problem shows as <code>No trusted public keys found</code>, and nothing from the repository is used. The package installs the fingerprint on the firewall, and later releases update it: a key rotation adds a new dated fingerprint file.</p>
 
     <h2 id="install">3. Install plugins</h2>
     <p><strong>System &gt; Firmware &gt; Plugins</strong> lists the LegoTypes plugins beside the official ones; install with the <strong>+</strong> button. They show <strong>tier 4</strong>: OPNsense reserves its trusted tiers for its own repository and Zenarmor's, and marks every community repository tier 4.</p>
