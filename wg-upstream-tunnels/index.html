@@ -13,7 +13,7 @@
     <a class="brand" href="../">LegoTypes</a>
     <nav>
       <a href="../install/">Install</a>
-      <a href="https://github.com/LegoTypes/plugins/tree/add-wg-ipv6-gateway/net/wg-client-tunnels">Source</a>
+      <a href="https://github.com/LegoTypes/plugins/tree/main/net/wg-client-tunnels">Source</a>
     </nav>
   </div>
 </header>
@@ -81,7 +81,7 @@
     </table>
     </div>
     <h2 id="source">Source and install</h2>
-    <p>Install it from the signed LegoTypes repository: see <a href="../install/">Install</a>. The plugin is not in the official OPNsense repository. Source: <a href="https://github.com/LegoTypes/plugins/tree/add-wg-ipv6-gateway/net/wg-client-tunnels">LegoTypes/plugins, branch <code>add-wg-ipv6-gateway</code>, <code>net/wg-client-tunnels</code></a>. The package is <code>os-wg-client-tunnels</code>; its page URL, configd actions and namespace keep the <code>wgclienttunnels</code> name. It targets OPNsense 26.7 with core's built-in WireGuard, and its changelog is in <code>pkg-descr</code>.</p>
+    <p>Install it from the signed LegoTypes repository: see <a href="../install/">Install</a>. The plugin is not in the official OPNsense repository. Source: <a href="https://github.com/LegoTypes/plugins/tree/main/net/wg-client-tunnels">LegoTypes/plugins, <code>net/wg-client-tunnels</code></a>. The package is <code>os-wg-client-tunnels</code>; its page URL, configd actions and namespace keep the <code>wgclienttunnels</code> name. It targets OPNsense 26.7 with core's built-in WireGuard, and its changelog is in <code>pkg-descr</code>.</p>
 
     <h2 id="configuration">Configuration</h2>
     <p>Everything is on one page under <strong>VPN &gt; WireGuard &gt; Upstream tunnels</strong>: a settings pane with a help column, then the tunnel list. The list is a standard OPNsense grid with one row per managed tunnel: its device and interface, endpoint, bound WAN, MTU and MSS clamp, IPv4 and IPv6 gateways with live status (drawn as on core's gateway page), outbound NAT sources, gateway groups and findings. Every name links to the core page that owns it, and a gateway link opens that gateway's own edit dialog.</p>
