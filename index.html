@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LegoTypes</title>
-<meta name="description" content="Open-source OPNsense plugins from LegoTypes: WireGuard upstream tunnels and a MAC alias cache.">
+<meta name="description" content="Open-source OPNsense plugins from LegoTypes: WireGuard upstream tunnels, WAN failover, Unbound upstream via a gateway group, and a MAC alias cache.">
 <link rel="stylesheet" href="assets/site.css">
 </head>
 <body>
@@ -30,6 +30,18 @@
         <div class="links"><a href="wg-upstream-tunnels/">Details</a><a href="https://github.com/LegoTypes/plugins/tree/main/net/wg-client-tunnels">Source</a></div>
       </li>
       <li>
+        <h3><a href="wan-failover/">WAN Failover</a></h3>
+        <div class="pkg">os-wan-failover · System &gt; Gateways</div>
+        <p>Holds a lossy WAN out of service until it is clean, moves connections to the right WAN both ways, and restarts Tailscale only when the default route really changed.</p>
+        <div class="links"><a href="wan-failover/">Details</a><a href="https://github.com/LegoTypes/plugins/tree/main/net/wan-failover">Source</a></div>
+      </li>
+      <li>
+        <h3><a href="unbound-upstream/">Unbound Upstream via Gateway</a></h3>
+        <div class="pkg">os-unbound-upstream · Services &gt; Unbound DNS</div>
+        <p>Sends Unbound's lookups to a resolver inside your VPN tunnels through a gateway group's best member, falls back when none is up, and can fail closed for chosen clients instead.</p>
+        <div class="links"><a href="unbound-upstream/">Details</a><a href="https://github.com/LegoTypes/plugins/tree/main/dns/unbound-upstream">Source</a></div>
+      </li>
+      <li>
         <h3><a href="mac-alias-cache/">MAC Alias Cache</a></h3>
         <div class="pkg">os-mac-alias-cache · Firewall &gt; Diagnostics</div>
         <p>See what each MAC firewall alias really resolves to, and rebuild them from current host discovery on demand instead of waiting hours for stale addresses to expire.</p>
@@ -39,10 +51,7 @@
 
     <section class="get-started">
       <h2>Get started</h2>
-      <p>One command on the firewall adds the signed repository; the plugins then appear in System &gt; Firmware &gt; Plugins.</p>
-<pre><code>pkg add https://legotypes.github.io/opnsense-repo/os-legotypes.pkg &amp;&amp; \
-  pkg install -fy -r LegoTypes os-legotypes &amp;&amp; \
-  /usr/local/opnsense/scripts/firmware/register.php install os-legotypes</code></pre>
+      <p>Check the signing key, then a few commands on the firewall add the signed repository; the plugins then appear in System &gt; Firmware &gt; Plugins.</p>
       <p>OPNsense 26.7 on amd64. <a href="install/">Install guide and key fingerprint</a> · <a href="https://github.com/LegoTypes/opnsense-repo">Repository source</a></p>
     </section>
   </main>

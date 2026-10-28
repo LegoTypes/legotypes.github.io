@@ -8,15 +8,19 @@ no Jekyll (`.nojekyll`), no external scripts or fonts.
 
 | Path | Page |
 |---|---|
-| `/` | Landing: the plugins as a card grid, and the install one-liner |
+| `/` | Landing: the plugins as a card grid, and a pointer to the install guide |
 | `/install/` | Adding the signed LegoTypes package repository to OPNsense: the bootstrap command, the signing-key fingerprint and how to check it, updates and removal |
 | `/wg-upstream-tunnels/` | `os-wg-client-tunnels`: why, what it builds and enforces, settings, findings, command line |
 | `/wg-upstream-tunnels/after-setup/` | What is left to core's pages after Create: gateway groups, policy rules, failing closed, kill states, DNS choices |
+| `/wan-failover/` | `os-wan-failover`: holding a lossy WAN out, moving connections, restarting Tailscale |
+| `/unbound-upstream/` | `os-unbound-upstream`: Unbound's root zone through a gateway group, the fallback, failing closed |
 | `/mac-alias-cache/` | `os-mac-alias-cache`: MAC alias inspection and rebuild |
 | `/assets/site.css` | The stylesheet: light and dark via `prefers-color-scheme`; a page with a contents sidebar uses `<div class="page with-toc">` |
 
 Each plugin's `PLUGIN_WWW` points at its page, so the paths above are part of the
-packages; renaming one needs a plugin release.
+packages; renaming one needs a plugin release. `os-wan-failover` (1.4_3) and
+`os-unbound-upstream` (1.5) still point at the site root; their next releases
+point at their pages.
 
 The package repository itself is not here: it is published by
 [`LegoTypes/opnsense-repo`](https://github.com/LegoTypes/opnsense-repo) under

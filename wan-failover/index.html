@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WAN Failover for OPNsense</title>
+<meta name="description" content="An OPNsense plugin that holds a lossy IPv4 WAN out of service until it is clean, moves connections to the right WAN both ways, and restarts Tailscale only on a real default-route change.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="inner">
+    <a class="brand" href="../">LegoTypes</a>
+    <nav>
+      <a href="../install/">Install</a>
+      <a href="https://github.com/LegoTypes/plugins/tree/main/net/wan-failover">Source</a>
+    </nav>
+  </div>
+</header>
+
+<div class="page">
+  <main class="content">
+    <div class="eyebrow">OPNsense plugin · os-wan-failover 1.4</div>
+    <h1>WAN Failover</h1>
+    <p class="lede">Decides when an IPv4 WAN leaves service and when it comes back, moves connections to the right WAN in both directions, and restarts Tailscale only when the default route really changed.</p>
+
+    <h2 id="why">Why this plugin</h2>
+    <p>Core's gateway monitor marks a WAN down when its loss crosses the gateway's threshold, and up again as soon as its reading drops back under it. On a link that drops packets in bursts, that flaps: the WAN leaves, returns while still lossy, and leaves again, and every change re-elects the default route. Connections opened during an outage stay on the other WAN after the preferred one recovers, because pf keeps a state on the path it was created on. Connections pinned to the failed WAN stay pinned to it. Tailscale, which picks its path once, keeps the old one.</p>
+    <p>The plugin turns that into one decision with hysteresis: a WAN goes out on loss and comes back only once it is clean.</p>
+
+    <h2 id="decides">How it decides</h2>
+    <ul>
+      <li><strong>Out.</strong> A WAN whose dpinger loss exceeds the gateway's own high-loss threshold, or that is hard down, is held with core's <em>Force down</em> while another WAN is usable. A WAN whose link is down (no carrier or no IPv4 address) has no monitor at all, and is held as unavailable for as long as the link stays down.</li>
+      <li><strong>Back.</strong> A held WAN is released only when a settled monitor window shows no loss at all, not merely loss under the threshold.</li>
+      <li><strong>Never both.</strong> A hold needs a usable alternative, and every hold is released at once on positive evidence that the alternative failed.</li>
+      <li><strong>Boot.</strong> A reboot releases the holds the plugin took before routing starts, so a box never boots with a WAN it forced down.</li>
+      <li><strong>Only its own holds.</strong> Each hold is recorded with the boot that took it, saved together with <em>Force down</em> in one config write, outside the settings where the settings API cannot change it. Only a hold that record proves is ever released: a gateway you forced down by hand, or one a restored backup brings back forced down, stays down until you untick <em>Force down</em>.</li>
+    </ul>
+    <p>It evaluates every minute, on every gateway monitor alarm and after a configuration change.</p>
+
+    <h2 id="connections">Moving connections</h2>
+    <p><strong>On a hold</strong>, the states routed via that WAN's gateway and interface are killed, so its connections reconnect over the other WAN at once instead of timing out.</p>
+    <p><strong>On recovery</strong>, the connections that prefer the recovered WAN, by their rule's gateway or gateway-group tier or otherwise by the default route, are ended once the firewall already routes them there, so they reconnect through it. The <strong>failback delay</strong> (10 minutes by default) makes that wait until the WAN has read clean for that long; any loss restarts the wait, and a WAN held again never gets them back. <strong>Fail back now</strong> on the page ends the wait.</p>
+    <p><strong>Tailscale</strong> is restarted when the IPv4 default route moves to another gateway and stays there, so it reconnects on the new path, and only then.</p>
+
+    <h2 id="settings">Settings</h2>
+    <p>On <strong>System &gt; Gateways &gt; WAN Failover</strong>, with its log under <strong>WAN Failover Log</strong>.</p>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Setting</th><th>What it does</th><th>Normally</th></tr></thead>
+      <tbody>
+        <tr><td>Enable</td><td>Hold, release, move connections and restart Tailscale as above. Off releases every hold at once.</td><td>On</td></tr>
+        <tr><td>Dry run</td><td>Decide and log only: nothing is held, killed or restarted. Watch what it would do before letting it act.</td><td>On by default; off once you trust it</td></tr>
+        <tr><td>WAN gateways</td><td>The IPv4 gateways to manage, normally the two WANs. Only saved gateways are listed: save an automatic gateway once on System &gt; Gateways &gt; Configuration to select it.</td><td>Both WANs</td></tr>
+        <tr><td>Move connections back</td><td>End the connections that prefer a recovered WAN so they reconnect through it.</td><td>On</td></tr>
+        <tr><td>Failback delay (minutes)</td><td>How long a recovered WAN must read clean before connections move back. 0 moves them as soon as the WAN is released.</td><td>10</td></tr>
+        <tr><td>Restart Tailscale</td><td>Restart tailscaled on a real IPv4 default-route change.</td><td>On with Tailscale</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h2 id="cli">Command line</h2>
+<pre><code>configctl wanfailover holds          # JSON: each WAN's reading and judgement, whether it is held, any failback wait
+configctl wanfailover status         # whether the plugin's minute job is installed
+configctl wanfailover failback_now   # end the failback delay
+configctl wanfailover release        # release every hold now</code></pre>
+
+    <h2 id="limits">Limits</h2>
+    <ul>
+      <li>IPv4 WANs only. IPv6 gateways are left to core.</li>
+      <li>It acts on core's own monitor readings and thresholds; set the gateways' loss thresholds and monitor periods on System &gt; Gateways.</li>
+      <li>Uninstalling the package releases its holds and re-syncs routing, and removes its minute job; an upgrade keeps the holds.</li>
+    </ul>
+
+    <h2 id="source">Source and install</h2>
+    <p>Install it from the LegoTypes repository: see <a href="../install/">Install</a>. Source: <a href="https://github.com/LegoTypes/plugins/tree/main/net/wan-failover">LegoTypes/plugins, <code>net/wan-failover</code></a>.</p>
+  </main>
+</div>
+
+<footer class="site-footer">
+  <div class="inner">LegoTypes · <a href="https://github.com/LegoTypes">github.com/LegoTypes</a></div>
+</footer>
+</body>
+</html>
