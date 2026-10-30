@@ -20,7 +20,7 @@
 
 <div class="page">
   <main class="content">
-    <div class="eyebrow">OPNsense plugin · os-unbound-upstream 1.5</div>
+    <div class="eyebrow">OPNsense plugin · os-unbound-upstream 1.6</div>
     <h1>Unbound Upstream via Gateway</h1>
     <p class="lede">Sends Unbound's internet lookups to a resolver inside your VPN tunnels, through the best member of a gateway group, and switches with the group. When no tunnel is up, Unbound falls back to its own forwarders, or chosen clients fail closed.</p>
 
@@ -30,10 +30,10 @@
 
     <h2 id="how">How it works</h2>
     <ul>
-      <li><strong>At run time, through Unbound's control channel.</strong> Switching is a forward change in the running Unbound, never a restart. A recovered member is used again only after the failback delay.</li>
+      <li><strong>At run time, through Unbound's control channel.</strong> Switching is a forward change in the running Unbound, never a restart. The probe that checks a resolver answers always asks for the root. A recovered member is used again only after the failback delay.</li>
       <li><strong>A route and a rule per resolver.</strong> The resolver's host route goes through the active member; a block keeps its address off every other path, and a counting block shows on the page how many packets it stopped.</li>
       <li><strong>A resolver per member, or one for all.</strong> Each member can have its own resolver, or use the default one. IPv4 or IPv6; a group holds one family.</li>
-      <li><strong>A contract.</strong> Tunnel mode is refused, with each reason on the page, when the setup cannot work as designed: an unmonitored member, a group of mixed families, Unbound set not to use that family, Outgoing Network Interfaces set, or Unbound's own root zone already forwarding to a member's resolver.</li>
+      <li><strong>A contract.</strong> Tunnel mode is refused, with each reason on the page, when the setup cannot work as designed: an unmonitored member, a group of mixed families, Unbound set not to use that family, Outgoing Network Interfaces set, or Unbound's own root zone already forwarding to a member's resolver. Since 1.6, Save refuses those Unbound settings while the plugin is enabled, along with a root-zone forward through DNS over TLS and, for a fail-closed set, a view line in another file of Unbound's include directory.</li>
       <li><strong>No surprises.</strong> Dry run (plan and log only) is the default. Nothing writes the configuration at run time; the only writer is Save.</li>
     </ul>
 
@@ -59,7 +59,6 @@
         <tr><td>Gateway group</td><td>The saved group, all of one family, whose members are the tunnels to the resolver. Every member must be monitored.</td><td></td></tr>
         <tr><td>Default resolver</td><td>The resolver's address inside the tunnels, for every member without its own row, for example <code>198.51.100.53</code>.</td><td></td></tr>
         <tr><td>Failback delay (seconds)</td><td>How long a better member must stay usable before Unbound returns to it, 60 to 3600; at least the longest monitor period of the members.</td><td>120</td></tr>
-        <tr><td>Probe name</td><td>The name used to check that the resolver answers; <code>.</code> asks for the root.</td><td><code>.</code></td></tr>
         <tr><td>Fall back to Unbound's own forwarders</td><td>Off: every client gets <code>REFUSED</code> while no member is usable. The firewall's own lookups always fall back.</td><td>On</td></tr>
         <tr><td>Fail closed on</td><td>Interfaces whose clients get <code>REFUSED</code> for internet names while no member is usable.</td><td>none</td></tr>
         <tr><td>Fail closed for networks</td><td>Source networks routed to the firewall that fail closed the same way.</td><td>none</td></tr>

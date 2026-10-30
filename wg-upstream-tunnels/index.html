@@ -44,7 +44,7 @@
   </aside>
 
   <main class="content">
-    <div class="eyebrow">OPNsense plugin · os-wg-client-tunnels 3.8</div>
+    <div class="eyebrow">OPNsense plugin · os-wg-client-tunnels 3.10</div>
     <h1>WireGuard Upstream Tunnels</h1>
     <p class="lede">Turns a VPN provider's WireGuard config file into a policy-routed upstream on OPNsense in one dialog, keeps it enforced, and tells you when someone changes a piece of it by hand.</p>
 
@@ -134,6 +134,7 @@
     <ul>
       <li><strong>Sentinel gateways (prevention).</strong> <code>NO_DEFAULT4</code> and <code>NO_DEFAULT6</code> are address-less gateways at priority 254 on a loopback. The native WANs still sort first and win whenever they are up; otherwise a sentinel outranks every tunnel, and because it has no address, core installs no default at all. The button <em>Check default-route exclusion</em> creates or repairs them, showing what it would change first.</li>
       <li><strong>Default-route guard (cleanup).</strong> At the end of every routing reconfigure and once a minute, it removes a default route whose next hop belongs only to tunnels or other gateways that are not a native default. It only deletes a route whose next hop it positively identifies, and leaves one a native default gateway shares, so it can never remove a native default it failed to recognise.</li>
+      <li><strong>Core 26.7.8.</strong> It makes the sentinels' gateway family-less and the other one defunct, so neither is elected and the guard alone keeps a tunnel out of the default route (<a href="https://github.com/opnsense/core/issues/11117">opnsense/core#11117</a>, where a revert is being considered). Reverting core commit 5b6ccdb592 with <code>opnsense-patch</code> restores them.</li>
     </ul>
 
     <h2 id="mtu">MTU and the MSS clamp</h2>
@@ -221,7 +222,7 @@
       <li><strong>Locks leak through <code>exec()</code>.</strong> PHP opens files without close-on-exec, so a daemon a reconfigure restarts inherits the script's lock files for life. Every plugin lock is opened close-on-exec, and reconfigures run through configd.</li>
       <li><strong>Core's gateway alarm is dropped while the gateway lock is held.</strong> Hence the replay after every routing change.</li>
       <li><strong>dpinger adds a host route to a monitor IP and never removes the old one.</strong> Edit hands the old one to core's route-deletion mechanism.</li>
-      <li><strong>Core starts an IPv6 monitor before a tunnel's IPv6 routes exist, and skips it while the tunnel address is still tentative.</strong> Hence the plugin's own monitor route and its once-a-minute repair.</li>
+      <li><strong>Core starts an IPv6 monitor before a tunnel's IPv6 routes exist.</strong> Hence the plugin's own monitor route. Before 26.7.6 core also skipped the monitor while the tunnel address was still tentative, which the plugin repaired once a minute until 3.10.</li>
       <li><strong>The default-gateway election ignores the <code>defaultgw</code> flag</strong> and never deletes a stale default. Hence the sentinels and the guard.</li>
       <li><strong>Core's backend returns an empty string on a timeout.</strong> A step counts as done only on an explicit OK.</li>
     </ul>

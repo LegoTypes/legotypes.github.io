@@ -20,7 +20,7 @@
 
 <div class="page">
   <main class="content">
-    <div class="eyebrow">OPNsense plugin · os-wan-failover 1.4</div>
+    <div class="eyebrow">OPNsense plugin · os-wan-failover 1.5</div>
     <h1>WAN Failover</h1>
     <p class="lede">Decides when an IPv4 WAN leaves service and when it comes back, moves connections to the right WAN in both directions, and restarts Tailscale only when the default route really changed.</p>
 
@@ -68,7 +68,7 @@ configctl wanfailover release        # release every hold now</code></pre>
     <h2 id="limits">Limits</h2>
     <ul>
       <li>IPv4 WANs only. IPv6 gateways are left to core.</li>
-      <li>It acts on core's own monitor readings and thresholds; set the gateways' loss thresholds and monitor periods on System &gt; Gateways.</li>
+      <li>It acts on core's own monitor readings and thresholds; set the gateways' loss thresholds and monitor periods on System &gt; Gateways. Save refuses a WAN gateway whose monitoring is disabled, or that is disabled itself.</li>
       <li>Uninstalling the package releases its holds and re-syncs routing, and removes its minute job; an upgrade keeps the holds.</li>
     </ul>
 
