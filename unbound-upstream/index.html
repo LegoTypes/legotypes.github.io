@@ -69,7 +69,7 @@
     </div>
     <p>Save refuses for the fail-closed fields: a gateway-group member's interface, the loopback interface, an interface with no address, a network with host bits, <code>0.0.0.0/0</code> and <code>::/0</code>, and a network that overlaps loopback or a member's network.</p>
 
-    <h2 id="status">Status, notifications, Home Assistant</h2>
+    <h2 id="status">Status and notifications</h2>
     <p>The page shows the mode (a member, or the fallback), the resolver, how long the member has been healthy, the last outage, the resolver's routes, the blocked-packet count and the Fail closed row. The privilege <strong>Status: Unbound DNS: Upstream via Gateway (API)</strong> reads the status and nothing else, for a poller's API key. Notify on switch POSTs each switch, and each change of a fail-closed problem, as JSON.</p>
 <pre><code>configctl unboundupstream state      # the status as JSON
 configctl unboundupstream stop       # undo tunnel mode now (the minute job re-enters it while enabled)</code></pre>
@@ -85,10 +85,12 @@ configctl unboundupstream stop       # undo tunnel mode now (the minute job re-e
       <li>An upgrade of the package falls back to Unbound's own forwarders for about a minute while the old version is removed; a fail-closed set stays refused through it.</li>
     </ul>
 
-    <h2 id="recovery">Recovery</h2>
+    <h2 id="recovery">Recover or uninstall</h2>
+    <p>Uninstall from <strong>System &gt; Firmware &gt; Plugins</strong>. The removal returns Unbound to its own forwarders and takes the plugin's route, rules, minute job and view with it.</p>
     <p>After a failed upgrade, a downgrade to a version that cannot fail closed, or a removal that could not finish, remove the view file and restart Unbound:</p>
 <pre><code>rm /usr/local/etc/unbound.opnsense.d/unboundupstream.conf
 configctl unbound restart</code></pre>
+    <p>If the removal could not finish, also delete any route it left to the resolver: <code>route delete -host &lt;resolver&gt;</code>, or <code>route delete -inet6 -host &lt;resolver&gt;</code> for an IPv6 one.</p>
 
     <h2 id="source">Source and install</h2>
     <p>Install it from the LegoTypes repository: see <a href="../install/">Install</a>. Source: <a href="https://github.com/LegoTypes/plugins/tree/main/dns/unbound-upstream">LegoTypes/plugins, <code>dns/unbound-upstream</code></a>.</p>
