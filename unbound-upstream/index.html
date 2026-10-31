@@ -85,12 +85,8 @@ configctl unboundupstream stop       # undo tunnel mode now (the minute job re-e
       <li>An upgrade of the package falls back to Unbound's own forwarders for about a minute while the old version is removed; a fail-closed set stays refused through it.</li>
     </ul>
 
-    <h2 id="recovery">Recover or uninstall</h2>
-    <p>Uninstall from <strong>System &gt; Firmware &gt; Plugins</strong>. The removal returns Unbound to its own forwarders and takes the plugin's route, rules, minute job and view with it.</p>
-    <p>After a failed upgrade, a downgrade to a version that cannot fail closed, or a removal that could not finish, remove the view file and restart Unbound:</p>
-<pre><code>rm /usr/local/etc/unbound.opnsense.d/unboundupstream.conf
-configctl unbound restart</code></pre>
-    <p>If the removal could not finish, also delete any route it left to the resolver: <code>route delete -host &lt;resolver&gt;</code>, or <code>route delete -inet6 -host &lt;resolver&gt;</code> for an IPv6 one.</p>
+    <h2 id="uninstall">Uninstall</h2>
+    <p>Uninstall from <strong>System &gt; Firmware &gt; Plugins</strong>. The removal returns Unbound to its own forwarders and takes the plugin's route, rules, minute job and view with it. If it cannot finish, the plugin's log names the commands to run.</p>
 
     <h2 id="source">Source and install</h2>
     <p>Install it from the LegoTypes repository: see <a href="../install/">Install</a>. Source: <a href="https://github.com/LegoTypes/plugins/tree/main/dns/unbound-upstream">LegoTypes/plugins, <code>dns/unbound-upstream</code></a>.</p>
