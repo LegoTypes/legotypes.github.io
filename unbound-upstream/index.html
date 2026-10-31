@@ -33,12 +33,12 @@
       <li><strong>At run time, through Unbound's control channel.</strong> Switching is a forward change in the running Unbound, never a restart. The probe that checks a resolver answers always asks for the root. A recovered member is used again only after the failback delay.</li>
       <li><strong>A route and a rule per resolver.</strong> The resolver's host route goes through the active member; a block keeps its address off every other path, and a counting block shows on the page how many packets it stopped.</li>
       <li><strong>A resolver per member, or one for all.</strong> Each member can have its own resolver, or use the default one. IPv4 or IPv6; a group holds one family.</li>
-      <li><strong>A contract.</strong> Tunnel mode is refused, with each reason on the page, when the setup cannot work as designed: an unmonitored member, a group of mixed families, Unbound set not to use that family, Outgoing Network Interfaces set, or Unbound's own root zone already forwarding to a member's resolver. Since 1.6, Save refuses those Unbound settings while the plugin is enabled, along with a root-zone forward through DNS over TLS and, for a fail-closed set, a view line in another file of Unbound's include directory.</li>
+      <li><strong>A contract.</strong> Tunnel mode is refused, with each reason on the page, when the setup cannot work as designed: an unmonitored member, a group of mixed families, Unbound set not to use that family, Outgoing Network Interfaces set, or Unbound's own root zone already forwarding to a member's resolver. Save refuses those Unbound settings while the plugin is enabled, along with a root-zone forward through DNS over TLS and, for a fail-closed set, a view line in another file of Unbound's include directory.</li>
       <li><strong>No surprises.</strong> Dry run (plan and log only) is the default. Nothing writes the configuration at run time; the only writer is Save.</li>
     </ul>
 
     <h2 id="fail-closed">Failing closed</h2>
-    <p>By default the fallback keeps everyone resolving. Since 1.5 you can choose, instead, that some clients get <code>REFUSED</code> for internet names while no tunnel is up, so their lookups never leave by the WAN:</p>
+    <p>By default the fallback keeps everyone resolving. You can choose, instead, that some clients get <code>REFUSED</code> for internet names while no tunnel is up, so their lookups never leave by the WAN:</p>
     <ul>
       <li><strong>Fail closed on</strong>: interfaces, such as a VLAN whose traffic must only ever use the tunnels.</li>
       <li><strong>Fail closed for networks</strong>: source networks routed to the firewall, such as a Tailscale tailnet (<code>100.64.0.0/10</code> and <code>fd7a:115c:a1e0::/48</code>).</li>
@@ -77,15 +77,16 @@ configctl unboundupstream stop       # undo tunnel mode now (the minute job re-e
     <h2 id="limits">Limits</h2>
     <ul>
       <li>WireGuard is the only tunnel type tested.</li>
-      <li>A client querying from an IPv6 link-local address is not covered by a fail-closed interface. A point-to-point interface contributes only its own address: list its peers under Fail closed for networks.</li>
-      <li>A device that falls back to DNS over HTTPS or iCloud Private Relay when refused resolves elsewhere; only firewall rules stop that.</li>
-      <li>A tailnet fails closed only if the firewall is the tailnet's only global nameserver ("Override DNS servers" on); Tailscale treats <code>REFUSED</code> as a soft error and takes another nameserver's answer.</li>
-      <li>A name created after the last minute's evaluation (a new host override or lease) is refused for a fail-closed client until the next one.</li>
+      <li>A client querying from an IPv6 link-local address is not covered by a fail-closed interface. Mitigation: advertise a ULA or global address as the DNS server, as core does by default; block DNS to <code>fe80::/10</code> on those interfaces; or turn the fallback off, which covers link-local clients too.</li>
+      <li>A point-to-point interface contributes only its own address. Mitigation: list its peers under Fail closed for networks.</li>
+      <li>A device that falls back to DNS over HTTPS or iCloud Private Relay when refused resolves elsewhere. Mitigation: firewall rules that block known DNS-over-HTTPS resolvers; a negative answer for <code>mask.icloud.com</code> and <code>mask-h2.icloud.com</code> turns Private Relay off on the network, and one for <code>use-application-dns.net</code> turns off Firefox's default DNS over HTTPS.</li>
+      <li>Tailscale treats <code>REFUSED</code> as a soft error and takes another nameserver's answer. Mitigation: make the firewall the tailnet's only global nameserver ("Override DNS servers" on, and "Use with exit node" on when the firewall is the exit node).</li>
+      <li>A name created after the last minute's evaluation (a new host override or lease) is refused for a fail-closed client until the next one. Mitigation: <code>configctl unboundupstream evaluate</code> runs one at once.</li>
       <li>An upgrade of the package falls back to Unbound's own forwarders for about a minute while the old version is removed; a fail-closed set stays refused through it.</li>
     </ul>
 
     <h2 id="recovery">Recovery</h2>
-    <p>After a failed upgrade, a downgrade to 1.4, or a removal that could not finish, remove the view file and restart Unbound:</p>
+    <p>After a failed upgrade, a downgrade to a version that cannot fail closed, or a removal that could not finish, remove the view file and restart Unbound:</p>
 <pre><code>rm /usr/local/etc/unbound.opnsense.d/unboundupstream.conf
 configctl unbound restart</code></pre>
 
