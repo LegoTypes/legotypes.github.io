@@ -44,7 +44,7 @@
   </aside>
 
   <main class="content">
-    <div class="eyebrow">OPNsense plugin · os-wg-client-tunnels 3.10</div>
+    <div class="eyebrow">OPNsense plugin · os-wg-client-tunnels 3.11</div>
     <h1>WireGuard Upstream Tunnels</h1>
     <p class="lede">Turns a VPN provider's WireGuard config file into a policy-routed upstream on OPNsense in one dialog, keeps it enforced, and tells you when someone changes a piece of it by hand.</p>
 
@@ -134,7 +134,7 @@
     <ul>
       <li><strong>Sentinel gateways (prevention).</strong> <code>NO_DEFAULT4</code> and <code>NO_DEFAULT6</code> are address-less gateways at priority 254 on a loopback. The native WANs still sort first and win whenever they are up; otherwise a sentinel outranks every tunnel, and because it has no address, core installs no default at all. The button <em>Check default-route exclusion</em> creates or repairs them, showing what it would change first.</li>
       <li><strong>Default-route guard (cleanup).</strong> At the end of every routing reconfigure and once a minute, it removes a default route whose next hop belongs only to tunnels or other gateways that are not a native default. It only deletes a route whose next hop it positively identifies, and leaves one a native default gateway shares, so it can never remove a native default it failed to recognise.</li>
-      <li><strong>Core 26.7.8.</strong> It makes the sentinels' gateway family-less and the other one defunct, so neither is elected and the guard alone keeps a tunnel out of the default route (<a href="https://github.com/opnsense/core/issues/11117">opnsense/core#11117</a>, where a revert is being considered). Reverting core commit 5b6ccdb592 with <code>opnsense-patch</code> restores them.</li>
+      <li><strong>Core 26.7.8.</strong> It makes the sentinels' gateway family-less and the other one defunct, so neither is elected and the guard alone keeps a tunnel out of the default route (<a href="https://github.com/opnsense/core/issues/11117">opnsense/core#11117</a>, where a revert is being considered). Reverting core commit 5b6ccdb592 with <code>opnsense-patch</code> restores them. The tunnel list names this change as core-contract drift.</li>
     </ul>
 
     <h2 id="mtu">MTU and the MSS clamp</h2>
